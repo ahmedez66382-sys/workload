@@ -92,7 +92,7 @@
                 </div>
             </div>
 
-            <!-- User Status / Auth Buttons -->
+            <!-- User Status / Nav Tabs -->
             <div id="navUserSection" class="flex items-center gap-3">
                 <!-- Injected via JS -->
             </div>
@@ -105,21 +105,7 @@
         <!-- Live Alert Notification -->
         <div id="toastMessage" class="hidden fixed bottom-6 left-6 z-50 max-w-md bg-emerald-600 text-white px-5 py-3 rounded-xl shadow-2xl flex items-center gap-3 transition-all transform duration-300">
             <svg class="w-6 h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-            <span id="toastText" class="text-sm font-semibold">تم الحفظ وتحديث السحابة بنجاح</span>
-        </div>
-
-        <!-- Banner for Cloud Connection Notice if in Local Fallback -->
-        <div id="cloudNoticeBanner" class="hidden mb-6 p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 flex flex-wrap items-center justify-between gap-3">
-            <div class="flex items-center gap-3">
-                <span class="p-2 bg-amber-100 text-amber-700 rounded-xl">☁️</span>
-                <div>
-                    <h4 class="font-bold text-sm">أنت تعمل الآن في الوضع المحلي (على هذا الجهاز فقط)</h4>
-                    <p class="text-xs text-amber-700 mt-0.5">لربط الموقع بقاعدة بيانات سحابية موحدة تجمع كافة المعيدين من أي مكان، اضغط على زر الإعداد السحابي.</p>
-                </div>
-            </div>
-            <button onclick="openCloudConfigModal()" class="px-4 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-lg shadow transition">
-                ⚙️ ضبط الربط السحابي (Firebase)
-            </button>
+            <span id="toastText" class="text-sm font-semibold">تم الحفظ بنجاح</span>
         </div>
 
         <!-- VIEW 1: AUTHENTICATION (Login / Register) -->
@@ -152,7 +138,7 @@
 
                     <!-- Quick Demo logins for ease of testing -->
                     <div class="pt-4 border-t border-slate-100">
-                        <p class="text-xs text-slate-500 mb-2 font-medium">حسابات تجريبية سريعة:</p>
+                        <p class="text-xs text-slate-500 mb-2 font-medium">حسابات تجريبية سريعة بنقرة واحدة:</p>
                         <div class="flex gap-2">
                             <button type="button" onclick="quickFillLogin('admin@dept.edu.eg', '123456')" class="flex-1 py-1.5 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold border">
                                 👑 منسق الجودة (مسؤول)
@@ -200,7 +186,126 @@
         </section>
 
 
-        <!-- VIEW 2: TEACHING ASSISTANT (USER) EDIT VIEW -->
+        <!-- VIEW 2: DEPARTMENT SUMMARY TABLE & STATS (VISIBLE TO EVERYONE) -->
+        <section id="tableSection" class="hidden space-y-6">
+
+            <!-- Controls & Export Toolbar -->
+            <div class="flex flex-wrap items-center justify-between gap-4 bg-white p-5 rounded-2xl shadow-sm border border-slate-200 no-print">
+                <div>
+                    <h2 class="text-2xl font-black text-brand-900">جدول وملخص أعباء القسم ولجان الجودة</h2>
+                    <p class="text-sm text-slate-500">متابعة توزيع الساعات ولجان الجودة لجميع أعضاء الهيئة المعاونة بالقسم</p>
+                </div>
+                <div class="flex flex-wrap items-center gap-2.5">
+                    <button onclick="switchView('profile')" class="px-4 py-2 bg-brand-700 hover:bg-brand-800 text-white text-sm font-bold rounded-xl shadow flex items-center gap-2 transition">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                        ✏️ تعديل بياناتي وساعاتي
+                    </button>
+                    <button onclick="exportToCSV()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-xl shadow flex items-center gap-2 transition">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                        تصدير كملف Excel (CSV)
+                    </button>
+                    <button onclick="window.print()" class="px-4 py-2 bg-slate-700 hover:bg-slate-800 text-white text-sm font-bold rounded-xl shadow flex items-center gap-2 transition">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                        طباعة / PDF
+                    </button>
+                    <button id="adminAddMemberBtn" onclick="openAddMemberModal()" class="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white text-sm font-bold rounded-xl shadow flex items-center gap-2 transition">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                        إضافة عضو
+                    </button>
+                </div>
+            </div>
+
+            <!-- Stats KPI Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 no-print">
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-4">
+                    <div class="p-3 bg-brand-50 text-brand-600 rounded-xl">
+                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                    </div>
+                    <div>
+                        <p class="text-xs font-semibold text-slate-500">إجمالي أعضاء الهيئة المعاونة</p>
+                        <h4 id="statTotalMembers" class="text-2xl font-black text-slate-800">0</h4>
+                    </div>
+                </div>
+
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-4">
+                    <div class="p-3 bg-blue-50 text-blue-600 rounded-xl">
+                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </div>
+                    <div>
+                        <p class="text-xs font-semibold text-slate-500">متوسط الساعات الأسبوعية</p>
+                        <h4 id="statAvgHours" class="text-2xl font-black text-slate-800">0</h4>
+                    </div>
+                </div>
+
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-4">
+                    <div class="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
+                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138z"></path></svg>
+                    </div>
+                    <div>
+                        <p class="text-xs font-semibold text-slate-500">المشاركون في لجان الجودة</p>
+                        <h4 id="statQualityParticipants" class="text-2xl font-black text-slate-800">0</h4>
+                    </div>
+                </div>
+
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-4">
+                    <div class="p-3 bg-amber-50 text-amber-600 rounded-xl">
+                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                    </div>
+                    <div>
+                        <p class="text-xs font-semibold text-slate-500">أعلى عبء تدريسي مسجل</p>
+                        <h4 id="statMaxHours" class="text-2xl font-black text-slate-800">0 س</h4>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Search & Filters -->
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-wrap gap-3 items-center justify-between no-print">
+                <div class="flex-1 min-w-[240px]">
+                    <div class="relative">
+                        <input type="text" id="adminSearchInput" oninput="renderAdminTable()" placeholder="ابحث باسم المعيد، المقرر، أو البريد..." class="w-full pr-10 pl-4 py-2 rounded-xl border border-slate-300 focus:ring-2 focus:ring-brand-500 outline-none text-sm">
+                        <svg class="w-5 h-5 text-slate-400 absolute right-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap gap-2">
+                    <select id="filterDegree" onchange="renderAdminTable()" class="px-3 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                        <option value="all">جميع الدرجات (معيد / م. مساعد)</option>
+                        <option value="معيد">معيد</option>
+                        <option value="مدرس مساعد">مدرس مساعد</option>
+                    </select>
+
+                    <select id="filterCommittee" onchange="renderAdminTable()" class="px-3 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                        <option value="all">جميع لجان الجودة</option>
+                        <!-- Injected via JS -->
+                    </select>
+                </div>
+            </div>
+
+            <!-- Table of Members -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-right text-sm">
+                        <thead class="bg-slate-50 text-slate-600 font-bold border-b border-slate-200 text-xs uppercase">
+                            <tr>
+                                <th class="p-4">الاسم والبيانات</th>
+                                <th class="p-4">الدرجة والقسم</th>
+                                <th class="p-4 text-center">العبء (تمارين / معامل)</th>
+                                <th class="p-4 text-center">الإجمالي</th>
+                                <th class="p-4">المقررات</th>
+                                <th class="p-4">لجان الجودة والمهام</th>
+                                <th class="p-4 text-center no-print">إجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="adminTableBody" class="divide-y divide-slate-100">
+                            <!-- Injected dynamically via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- VIEW 3: TEACHING ASSISTANT (MY PROFILE & LOAD EDIT) -->
         <section id="userSection" class="hidden max-w-4xl mx-auto space-y-6">
             
             <!-- Greeting & Quick Stats Banner -->
@@ -211,9 +316,15 @@
                         <h2 class="text-2xl sm:text-3xl font-extrabold" id="userWelcomeName">أهلاً بك</h2>
                         <p class="text-sm text-brand-200 mt-1" id="userDept">قسم علوم الحاسب</p>
                     </div>
-                    <div class="bg-white/10 backdrop-blur-md rounded-xl p-4 text-center border border-white/20 min-w-[130px]">
-                        <p class="text-xs text-brand-200">إجمالي العبء الأسبوعي</p>
-                        <div class="text-3xl font-black text-amber-300 mt-1"><span id="userTotalHoursDisplay">0</span> <span class="text-sm font-normal text-white">ساعة</span></div>
+                    <div class="flex items-center gap-3">
+                        <div class="bg-white/10 backdrop-blur-md rounded-xl p-4 text-center border border-white/20 min-w-[130px]">
+                            <p class="text-xs text-brand-200">إجمالي العبء الأسبوعي</p>
+                            <div class="text-3xl font-black text-amber-300 mt-1"><span id="userTotalHoursDisplay">0</span> <span class="text-sm font-normal text-white">ساعة</span></div>
+                        </div>
+                        <button type="button" onclick="switchView('table')" class="bg-white/20 hover:bg-white/30 text-white p-3 rounded-xl border border-white/30 text-xs font-bold transition flex flex-col items-center gap-1">
+                            <span class="text-lg">📊</span>
+                            <span>جدول القسم</span>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -285,128 +396,16 @@
                     </div>
                 </div>
 
-                <div class="pt-4 flex justify-end">
-                    <button type="submit" class="w-full sm:w-auto px-8 py-3.5 bg-brand-700 hover:bg-brand-800 text-white font-bold rounded-xl shadow-lg transition flex items-center justify-center gap-2 text-base">
+                <div class="pt-4 flex flex-wrap justify-between items-center gap-3">
+                    <button type="button" onclick="switchView('table')" class="px-6 py-3 border border-slate-300 text-slate-700 font-bold rounded-xl hover:bg-slate-50 transition">
+                        📊 العودة لجدول القسم
+                    </button>
+                    <button type="submit" class="px-8 py-3.5 bg-brand-700 hover:bg-brand-800 text-white font-bold rounded-xl shadow-lg transition flex items-center justify-center gap-2 text-base">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                         حفظ وتحديث بياناتي سحابياً
                     </button>
                 </div>
             </form>
-        </section>
-
-
-        <!-- VIEW 3: ADMIN & DEPARTMENT QUALITY DASHBOARD -->
-        <section id="adminSection" class="hidden space-y-6">
-
-            <!-- Controls & Export Toolbar -->
-            <div class="flex flex-wrap items-center justify-between gap-4 bg-white p-5 rounded-2xl shadow-sm border border-slate-200 no-print">
-                <div>
-                    <h2 class="text-2xl font-black text-brand-900">لوحة المتابعة الشاملة للقسم والجودة</h2>
-                    <p class="text-sm text-slate-500">تحديث فوري ومباشر لجميع المعيدين عبر السحابة</p>
-                </div>
-                <div class="flex flex-wrap items-center gap-2.5">
-                    <button onclick="exportToCSV()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-xl shadow flex items-center gap-2 transition">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                        تصدير كملف Excel (CSV)
-                    </button>
-                    <button onclick="window.print()" class="px-4 py-2 bg-slate-700 hover:bg-slate-800 text-white text-sm font-bold rounded-xl shadow flex items-center gap-2 transition">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
-                        طباعة / تقرير PDF
-                    </button>
-                    <button onclick="openAddMemberModal()" class="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white text-sm font-bold rounded-xl shadow flex items-center gap-2 transition">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                        إضافة عضو يدوياً
-                    </button>
-                </div>
-            </div>
-
-            <!-- Stats KPI Cards -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 no-print">
-                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-4">
-                    <div class="p-3 bg-brand-50 text-brand-600 rounded-xl">
-                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-                    </div>
-                    <div>
-                        <p class="text-xs font-semibold text-slate-500">إجمالي المسجلين</p>
-                        <h4 id="statTotalMembers" class="text-2xl font-black text-slate-800">0</h4>
-                    </div>
-                </div>
-
-                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-4">
-                    <div class="p-3 bg-blue-50 text-blue-600 rounded-xl">
-                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    </div>
-                    <div>
-                        <p class="text-xs font-semibold text-slate-500">متوسط الساعات الأسبوعية</p>
-                        <h4 id="statAvgHours" class="text-2xl font-black text-slate-800">0</h4>
-                    </div>
-                </div>
-
-                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-4">
-                    <div class="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
-                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path></svg>
-                    </div>
-                    <div>
-                        <p class="text-xs font-semibold text-slate-500">المشاركون في لجان الجودة</p>
-                        <h4 id="statQualityParticipants" class="text-2xl font-black text-slate-800">0</h4>
-                    </div>
-                </div>
-
-                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-4">
-                    <div class="p-3 bg-amber-50 text-amber-600 rounded-xl">
-                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                    </div>
-                    <div>
-                        <p class="text-xs font-semibold text-slate-500">أعلى عبء تدريسي مسجل</p>
-                        <h4 id="statMaxHours" class="text-2xl font-black text-slate-800">0 س</h4>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Search & Filters -->
-            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-wrap gap-3 items-center justify-between no-print">
-                <div class="flex-1 min-w-[240px]">
-                    <div class="relative">
-                        <input type="text" id="adminSearchInput" oninput="renderAdminTable()" placeholder="ابحث باسم المعيد، المقرر، أو البريد..." class="w-full pr-10 pl-4 py-2 rounded-xl border border-slate-300 focus:ring-2 focus:ring-brand-500 outline-none text-sm">
-                        <svg class="w-5 h-5 text-slate-400 absolute right-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                    </div>
-                </div>
-
-                <div class="flex flex-wrap gap-2">
-                    <select id="filterDegree" onchange="renderAdminTable()" class="px-3 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-brand-500 outline-none">
-                        <option value="all">جميع الدرجات (معيد / م. مساعد)</option>
-                        <option value="معيد">معيد</option>
-                        <option value="مدرس مساعد">مدرس مساعد</option>
-                    </select>
-
-                    <select id="filterCommittee" onchange="renderAdminTable()" class="px-3 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-brand-500 outline-none">
-                        <option value="all">جميع لجان الجودة</option>
-                        <!-- Injected via JS -->
-                    </select>
-                </div>
-            </div>
-
-            <!-- Table of Members -->
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                <div class="overflow-x-auto">
-                    <table class="w-full text-right text-sm">
-                        <thead class="bg-slate-50 text-slate-600 font-bold border-b border-slate-200 text-xs uppercase">
-                            <tr>
-                                <th class="p-4">الاسم والبيانات</th>
-                                <th class="p-4">الدرجة والقسم</th>
-                                <th class="p-4 text-center">العبء (تمارين / معامل)</th>
-                                <th class="p-4 text-center">الإجمالي</th>
-                                <th class="p-4">المقررات</th>
-                                <th class="p-4">لجان الجودة والمهام</th>
-                                <th class="p-4 text-center no-print">إجراءات</th>
-                            </tr>
-                        </thead>
-                        <tbody id="adminTableBody" class="divide-y divide-slate-100">
-                            <!-- Injected dynamically via JS -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
         </section>
 
     </main>
@@ -482,15 +481,6 @@
                 لكي يرى جميع المعيدين ومنسق الجودة البيانات في نفس اللحظة من أي جهاز في العالم، يستخدم النظام قاعدة بيانات <b>Firebase Realtime Database</b> المجانية من Google.
             </p>
 
-            <div class="space-y-3 text-xs bg-slate-50 p-4 rounded-xl border border-slate-200">
-                <div class="font-bold text-slate-800 mb-1">كيف تحصل على رابط مجاني في دقيقة واحدة؟</div>
-                <ol class="list-decimal list-inside space-y-1 text-slate-600">
-                    <li>ادخل إلى <a href="https://console.firebase.google.com" target="_blank" class="text-brand-600 underline font-bold">console.firebase.google.com</a> وسجل بحساب Google.</li>
-                    <li>اضغط <b>Add project</b> ثم اختر <b>Realtime Database</b> واضغط <b>Create Database</b> في وضع الاختبار (Test Mode).</li>
-                    <li>انسخ رابط قاعدة البيانات (ينتهي بـ <code class="bg-slate-200 px-1 rounded">.firebasedatabase.app</code>) وألصقه بالأسفل.</li>
-                </ol>
-            </div>
-
             <form onsubmit="handleSaveCloudConfig(event)" class="space-y-3">
                 <div>
                     <label class="block text-xs font-bold text-slate-700 mb-1">رابط قاعدة البيانات السحابية (Database URL):</label>
@@ -498,7 +488,7 @@
                 </div>
                 <div class="flex justify-between items-center pt-2">
                     <button type="button" onclick="useDemoCloudDB()" class="text-xs text-brand-600 hover:underline font-semibold">
-                        ⚡ تجربة رابط سحابي تجريبي جاهز
+                        ⚡ استعادة الرابط السحابي التلقائي
                     </button>
                     <div class="flex gap-2">
                         <button type="button" onclick="closeCloudConfigModal()" class="px-3 py-1.5 border rounded-lg text-slate-600 text-xs">إلغاء</button>
@@ -514,7 +504,7 @@
         نظام سحابي موحد للهيئة المعاونة والجودة © 2026 — مصمم للعمل المباشر عبر الإنترنت وتحديث البيانات المشتركة لحظياً
     </footer>
 
-    <!-- Application Logic (Firebase Cloud Sync + Local Storage Fallback) -->
+    <!-- Application Logic -->
     <script>
         const QUALITY_COMMITTEES = [
             "معيار التدريس والتعلم",
@@ -529,7 +519,6 @@
             "لجنة المراجعة الداخلية والوثائق"
         ];
 
-        // Default Seed Data
         const DEFAULT_USERS = [
             {
                 id: "admin-1",
@@ -617,10 +606,10 @@
         let currentUser = null;
         let isCloudConnected = false;
         let firebaseDbRef = null;
+        let currentActiveView = 'table'; // Default view for everyone is 'table'!
 
-        // Initialize App
         function initApp() {
-            // Setup committees checkboxes
+            // Setup checkboxes
             const checkboxContainer = document.getElementById("committeesCheckboxContainer");
             checkboxContainer.innerHTML = QUALITY_COMMITTEES.map(comm => `
                 <label class="flex items-center gap-2.5 p-2.5 bg-slate-50 hover:bg-slate-100 rounded-lg cursor-pointer border border-slate-200 transition">
@@ -634,24 +623,19 @@
             filterCommSelect.innerHTML = `<option value="all">جميع لجان الجودة</option>` + 
                 QUALITY_COMMITTEES.map(c => `<option value="${c}">${c}</option>`).join('');
 
-            // Load local cache first
             loadLocalUsers();
 
-            // Check active session
             const sessionUserId = localStorage.getItem("ta_current_user_id");
             if (sessionUserId) {
                 const found = users.find(u => u.id === sessionUserId);
                 if (found) currentUser = found;
             }
 
-            // Attempt Cloud Connection
             setupFirebaseCloud();
-
             renderNavbar();
             renderCurrentView();
         }
 
-        // Cloud Setup
         function setupFirebaseCloud() {
             const savedDbUrl = localStorage.getItem("ta_firebase_db_url") || "https://quality-ta-system-default-rtdb.firebaseio.com";
             
@@ -664,22 +648,18 @@
                 
                 firebaseDbRef = firebase.database().ref('ta_users');
 
-                // Test connection
                 firebaseDbRef.on('value', (snapshot) => {
                     isCloudConnected = true;
                     updateCloudBadge(true);
                     
                     const cloudData = snapshot.val();
                     if (cloudData) {
-                        // Firebase stores objects by id
                         users = Object.values(cloudData);
                         saveUsersLocally();
                     } else {
-                        // Seed cloud if empty
                         seedCloudDatabase();
                     }
 
-                    // Update current user reference if logged in
                     if (currentUser) {
                         const refreshed = users.find(u => u.id === currentUser.id);
                         if (refreshed) currentUser = refreshed;
@@ -687,7 +667,7 @@
 
                     renderCurrentView();
                 }, (error) => {
-                    console.warn("Cloud connection error, falling back to local mode:", error);
+                    console.warn("Cloud connection error:", error);
                     isCloudConnected = false;
                     updateCloudBadge(false);
                 });
@@ -702,16 +682,13 @@
         function updateCloudBadge(connected) {
             const badge = document.getElementById("cloudStatusBadge");
             const text = document.getElementById("cloudStatusText");
-            const noticeBanner = document.getElementById("cloudNoticeBanner");
 
             if (connected) {
                 badge.className = "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 hover:bg-emerald-500/30 transition cursor-pointer";
                 text.innerHTML = "🟢 متصل سحابياً (تحديث فوري)";
-                noticeBanner.classList.add("hidden");
             } else {
                 badge.className = "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/20 text-amber-300 border border-amber-400/30 hover:bg-amber-500/30 transition cursor-pointer";
-                text.innerHTML = "🟡 الوضع المحلي (اضغط للربط)";
-                noticeBanner.classList.remove("hidden");
+                text.innerHTML = "🟡 الوضع المحلي";
             }
         }
 
@@ -741,9 +718,7 @@
             localStorage.setItem("ta_management_users", JSON.stringify(users));
         }
 
-        // Sync a user to cloud & local
         function syncUser(userObj) {
-            // Local update
             const idx = users.findIndex(u => u.id === userObj.id);
             if (idx !== -1) {
                 users[idx] = userObj;
@@ -752,7 +727,6 @@
             }
             saveUsersLocally();
 
-            // Cloud sync
             if (isCloudConnected && firebaseDbRef) {
                 firebaseDbRef.child(userObj.id).set(userObj);
             }
@@ -767,7 +741,6 @@
             }
         }
 
-        // Cloud Modal Controls
         function openCloudConfigModal() {
             document.getElementById("cfgDbUrl").value = localStorage.getItem("ta_firebase_db_url") || "";
             document.getElementById("cloudConfigModal").classList.remove("hidden");
@@ -799,7 +772,6 @@
             }, 3000);
         }
 
-        // Auth Tabs
         function switchAuthTab(tab) {
             const loginBtn = document.getElementById("tabLoginBtn");
             const regBtn = document.getElementById("tabRegisterBtn");
@@ -838,6 +810,7 @@
 
             currentUser = user;
             localStorage.setItem("ta_current_user_id", user.id);
+            currentActiveView = 'table'; // open the table immediately!
             renderNavbar();
             renderCurrentView();
             showToast("مرحباً بك: " + user.name);
@@ -876,10 +849,11 @@
             syncUser(newUser);
             currentUser = newUser;
             localStorage.setItem("ta_current_user_id", newUser.id);
+            currentActiveView = 'profile'; // take them to edit their load first
 
             renderNavbar();
             renderCurrentView();
-            showToast("تم إنشاء الحساب بنجاح سحابياً!");
+            showToast("تم إنشاء الحساب بنجاح! سجل أعباءك الآن.");
         }
 
         function handleLogout() {
@@ -888,6 +862,12 @@
             renderNavbar();
             renderCurrentView();
             showToast("تم تسجيل الخروج");
+        }
+
+        function switchView(viewName) {
+            currentActiveView = viewName;
+            renderNavbar();
+            renderCurrentView();
         }
 
         function renderNavbar() {
@@ -905,11 +885,14 @@
                             <div class="text-sm font-bold text-white">${currentUser.name}</div>
                             <div class="text-xs text-brand-200">${currentUser.role === 'Admin' ? '👑 مسؤول الجودة والقسم' : currentUser.degree + ' - ' + currentUser.department}</div>
                         </div>
-                        ${currentUser.role === 'Admin' ? `
-                            <button onclick="toggleAdminUserView()" id="viewSwitchBtn" class="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-900 rounded-lg text-xs font-bold transition shadow">
-                                ${currentActiveView === 'admin' ? '👤 صفحتي كمعيد' : '📊 لوحة القسم العامة'}
+                        <div class="flex items-center gap-1.5 bg-brand-950/40 p-1 rounded-xl border border-brand-700">
+                            <button onclick="switchView('table')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition ${currentActiveView === 'table' ? 'bg-amber-400 text-slate-900 shadow-sm' : 'text-brand-100 hover:bg-white/10'}">
+                                📊 جدول القسم
                             </button>
-                        ` : ''}
+                            <button onclick="switchView('profile')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition ${currentActiveView === 'profile' ? 'bg-amber-400 text-slate-900 shadow-sm' : 'text-brand-100 hover:bg-white/10'}">
+                                👤 صفحتي وساعاتي
+                            </button>
+                        </div>
                         <button onclick="handleLogout()" title="تسجيل الخروج" class="p-2 bg-brand-800 hover:bg-red-700 text-white rounded-lg text-xs transition">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
                         </button>
@@ -918,39 +901,31 @@
             }
         }
 
-        let currentActiveView = 'user';
-
         function showAuthView() {
             currentActiveView = 'auth';
-            renderCurrentView();
-        }
-
-        function toggleAdminUserView() {
-            currentActiveView = (currentActiveView === 'admin') ? 'user' : 'admin';
-            renderNavbar();
             renderCurrentView();
         }
 
         function renderCurrentView() {
             const authSec = document.getElementById("authSection");
             const userSec = document.getElementById("userSection");
-            const adminSec = document.getElementById("adminSection");
+            const tableSec = document.getElementById("tableSection");
 
             authSec.classList.add("hidden");
             userSec.classList.add("hidden");
-            adminSec.classList.add("hidden");
+            tableSec.classList.add("hidden");
 
             if (!currentUser) {
                 authSec.classList.remove("hidden");
                 return;
             }
 
-            if (currentUser.role === 'Admin' && currentActiveView === 'admin') {
-                adminSec.classList.remove("hidden");
-                renderAdminDashboard();
-            } else {
+            if (currentActiveView === 'profile') {
                 userSec.classList.remove("hidden");
                 populateUserForm();
+            } else {
+                tableSec.classList.remove("hidden");
+                renderTableDashboard();
             }
         }
 
@@ -1007,10 +982,15 @@
 
             document.getElementById("userTotalHoursDisplay").innerText = currentUser.totalHours;
             showToast("تم الحفظ ونشر التحديث سحابياً للقسم!");
+            
+            // Switch to the table to see the updated load immediately
+            setTimeout(() => {
+                switchView('table');
+            }, 800);
         }
 
-        // ADMIN VIEW LOGIC
-        function renderAdminDashboard() {
+        // TABLE VIEW LOGIC (FOR EVERYONE)
+        function renderTableDashboard() {
             const activeUsers = users.filter(u => u.role !== 'Admin');
             const totalCount = activeUsers.length;
             const sumHours = activeUsers.reduce((sum, u) => sum + (u.totalHours || 0), 0);
@@ -1022,6 +1002,14 @@
             document.getElementById("statAvgHours").innerText = avgHours + " س";
             document.getElementById("statQualityParticipants").innerText = participantsInQuality + " من " + totalCount;
             document.getElementById("statMaxHours").innerText = maxHours + " س";
+
+            // If not admin, hide add button or allow it
+            const addBtn = document.getElementById("adminAddMemberBtn");
+            if (currentUser && currentUser.role === 'Admin') {
+                addBtn.classList.remove("hidden");
+            } else {
+                addBtn.classList.add("hidden");
+            }
 
             renderAdminTable();
         }
@@ -1053,6 +1041,8 @@
                 return;
             }
 
+            const isAdmin = currentUser && currentUser.role === 'Admin';
+
             tbody.innerHTML = filtered.map(u => {
                 const total = u.totalHours || 0;
                 let hoursBadgeColor = "bg-slate-100 text-slate-700";
@@ -1060,14 +1050,41 @@
                 else if (total >= 10) hoursBadgeColor = "bg-emerald-100 text-emerald-800 font-bold";
                 else if (total < 6) hoursBadgeColor = "bg-amber-100 text-amber-800";
 
+                const isMe = currentUser && currentUser.id === u.id;
+
                 const commsBadge = (u.committees && u.committees.length > 0)
                     ? u.committees.map(c => `<span class="inline-block bg-brand-50 text-brand-700 px-2 py-0.5 rounded text-xs ml-1 mb-1 border border-brand-200">${c}</span>`).join('')
                     : `<span class="text-xs text-rose-500 font-semibold">غير مسجل بلجان</span>`;
 
+                let actionHtml = '';
+                if (isAdmin) {
+                    actionHtml = `
+                        <div class="flex justify-center gap-1.5">
+                            <button onclick="openEditModal('${u.id}')" class="p-1.5 text-brand-600 hover:bg-brand-50 rounded-lg transition" title="تعديل">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                            </button>
+                            <button onclick="deleteMember('${u.id}')" class="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg transition" title="حذف">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            </button>
+                        </div>
+                    `;
+                } else if (isMe) {
+                    actionHtml = `
+                        <button onclick="switchView('profile')" class="px-2.5 py-1 bg-brand-100 hover:bg-brand-200 text-brand-800 rounded-lg text-xs font-bold transition">
+                            ✏️ تعديل بياناتي
+                        </button>
+                    `;
+                } else {
+                    actionHtml = `<span class="text-xs text-slate-300">—</span>`;
+                }
+
                 return `
-                    <tr class="hover:bg-slate-50 transition">
+                    <tr class="hover:bg-slate-50 transition ${isMe ? 'bg-amber-50/50' : ''}">
                         <td class="p-4">
-                            <div class="font-bold text-slate-800">${u.name}</div>
+                            <div class="font-bold text-slate-800 flex items-center gap-1.5">
+                                ${u.name}
+                                ${isMe ? '<span class="px-1.5 py-0.5 bg-amber-200 text-amber-900 rounded text-[10px] font-bold">أنت</span>' : ''}
+                            </div>
                             <div class="text-xs text-slate-400">${u.email}</div>
                         </td>
                         <td class="p-4">
@@ -1093,21 +1110,14 @@
                             ${u.committeeRole ? `<div class="text-[11px] text-slate-500 mt-1">الدور: <b class="text-slate-700">${u.committeeRole}</b></div>` : ''}
                         </td>
                         <td class="p-4 text-center no-print">
-                            <div class="flex justify-center gap-1.5">
-                                <button onclick="openEditModal('${u.id}')" class="p-1.5 text-brand-600 hover:bg-brand-50 rounded-lg transition" title="تعديل">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
-                                </button>
-                                <button onclick="deleteMember('${u.id}')" class="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg transition" title="حذف">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                                </button>
-                            </div>
+                            ${actionHtml}
                         </td>
                     </tr>
                 `;
             }).join('');
         }
 
-        // Admin Modal
+        // Modal
         function openEditModal(userId) {
             const u = users.find(x => x.id === userId);
             if (!u) return;
@@ -1197,14 +1207,14 @@
             }
 
             closeMemberModal();
-            renderAdminDashboard();
+            renderTableDashboard();
             showToast("تم حفظ التعديلات سحابياً بنجاح");
         }
 
         function deleteMember(id) {
             if (confirm("هل أنت متأكد من رغبتك في حذف هذا العضو؟")) {
                 syncDeleteUser(id);
-                renderAdminDashboard();
+                renderTableDashboard();
                 showToast("تم الحذف بنجاح");
             }
         }
@@ -1237,7 +1247,6 @@
             document.body.removeChild(link);
         }
 
-        // Start App
         window.addEventListener("DOMContentLoaded", initApp);
     </script>
 </body>
