@@ -1,0 +1,1244 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>منصة إدارة المعيدين والعبء التدريسي ولجان الجودة (السحابية)</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Cairo Arabic Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <!-- Firebase SDK (Compat v9) for instant real-time cloud database -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        cairo: ['Cairo', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f7ff',
+                            100: '#e0effe',
+                            500: '#0284c7',
+                            600: '#0369a1',
+                            700: '#075985',
+                            800: '#0c4a6e',
+                            900: '#082f49',
+                        },
+                        accent: {
+                            500: '#0d9488',
+                            600: '#0f766e',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: #f8fafc;
+        }
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+            .print-only {
+                display: block !important;
+            }
+            body {
+                background: white;
+            }
+        }
+        .pulse-live {
+            animation: pulse-animation 2s infinite;
+        }
+        @keyframes pulse-animation {
+            0% { transform: scale(0.95); opacity: 0.8; }
+            50% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(0.95); opacity: 0.8; }
+        }
+    </style>
+</head>
+<body class="min-h-screen text-slate-800 flex flex-col justify-between">
+
+    <!-- Header / Navbar -->
+    <header class="bg-brand-900 text-white shadow-lg sticky top-0 z-50 no-print border-b border-brand-700">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-wrap justify-between items-center gap-4">
+            
+            <div class="flex items-center space-x-3 space-x-reverse">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-500 to-accent-500 flex items-center justify-center shadow-md shrink-0">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                    </svg>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h1 class="text-xl font-bold tracking-tight">منصة متابعة الهيئة المعاونة والجودة</h1>
+                        <!-- Cloud Sync Status Badge -->
+                        <button onclick="openCloudConfigModal()" id="cloudStatusBadge" class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/20 text-amber-300 border border-amber-400/30 hover:bg-amber-500/30 transition cursor-pointer" title="اضغط لضبط إعدادات الربط السحابي">
+                            <span class="w-2 h-2 rounded-full bg-amber-400 pulse-live"></span>
+                            <span id="cloudStatusText">جاري الاتصال بالسحابة...</span>
+                        </button>
+                    </div>
+                    <p class="text-xs text-brand-200">نظام سحابي موحد للقسم — تحديث فوري من أي مكان</p>
+                </div>
+            </div>
+
+            <!-- User Status / Auth Buttons -->
+            <div id="navUserSection" class="flex items-center gap-3">
+                <!-- Injected via JS -->
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full">
+        
+        <!-- Live Alert Notification -->
+        <div id="toastMessage" class="hidden fixed bottom-6 left-6 z-50 max-w-md bg-emerald-600 text-white px-5 py-3 rounded-xl shadow-2xl flex items-center gap-3 transition-all transform duration-300">
+            <svg class="w-6 h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+            <span id="toastText" class="text-sm font-semibold">تم الحفظ وتحديث السحابة بنجاح</span>
+        </div>
+
+        <!-- Banner for Cloud Connection Notice if in Local Fallback -->
+        <div id="cloudNoticeBanner" class="hidden mb-6 p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+                <span class="p-2 bg-amber-100 text-amber-700 rounded-xl">☁️</span>
+                <div>
+                    <h4 class="font-bold text-sm">أنت تعمل الآن في الوضع المحلي (على هذا الجهاز فقط)</h4>
+                    <p class="text-xs text-amber-700 mt-0.5">لربط الموقع بقاعدة بيانات سحابية موحدة تجمع كافة المعيدين من أي مكان، اضغط على زر الإعداد السحابي.</p>
+                </div>
+            </div>
+            <button onclick="openCloudConfigModal()" class="px-4 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-lg shadow transition">
+                ⚙️ ضبط الربط السحابي (Firebase)
+            </button>
+        </div>
+
+        <!-- VIEW 1: AUTHENTICATION (Login / Register) -->
+        <section id="authSection" class="hidden max-w-xl mx-auto my-8">
+            <div class="bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden">
+                <!-- Tabs -->
+                <div class="flex border-b border-slate-200 bg-slate-50">
+                    <button id="tabLoginBtn" onclick="switchAuthTab('login')" class="flex-1 py-3.5 text-center font-bold text-brand-700 border-b-2 border-brand-600 transition">
+                        تسجيل الدخول
+                    </button>
+                    <button id="tabRegisterBtn" onclick="switchAuthTab('register')" class="flex-1 py-3.5 text-center font-bold text-slate-500 hover:text-brand-600 border-b-2 border-transparent transition">
+                        تسجيل معيد جديد
+                    </button>
+                </div>
+
+                <!-- Login Form -->
+                <form id="loginForm" onsubmit="handleLogin(event)" class="p-6 sm:p-8 space-y-5">
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1.5">البريد الإلكتروني الجامعي</label>
+                        <input type="email" id="loginEmail" required placeholder="name@univ.edu.eg" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none text-left" dir="ltr">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1.5">كلمة المرور</label>
+                        <input type="password" id="loginPassword" required placeholder="••••••••" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none text-left" dir="ltr">
+                    </div>
+                    
+                    <button type="submit" class="w-full py-3 bg-brand-700 hover:bg-brand-800 text-white font-bold rounded-xl shadow-md transition">
+                        دخول إلى حسابي
+                    </button>
+
+                    <!-- Quick Demo logins for ease of testing -->
+                    <div class="pt-4 border-t border-slate-100">
+                        <p class="text-xs text-slate-500 mb-2 font-medium">حسابات تجريبية سريعة:</p>
+                        <div class="flex gap-2">
+                            <button type="button" onclick="quickFillLogin('admin@dept.edu.eg', '123456')" class="flex-1 py-1.5 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold border">
+                                👑 منسق الجودة (مسؤول)
+                            </button>
+                            <button type="button" onclick="quickFillLogin('ahmed.ibrahim@univ.edu.eg', '123456')" class="flex-1 py-1.5 text-xs bg-brand-50 hover:bg-brand-100 text-brand-700 rounded-lg font-semibold border border-brand-200">
+                                👨‍🏫 معيد تجريبي (أحمد)
+                            </button>
+                        </div>
+                    </div>
+                </form>
+
+                <!-- Register Form -->
+                <form id="registerForm" onsubmit="handleRegister(event)" class="hidden p-6 sm:p-8 space-y-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1">الاسم الكامل (ثلاثي أو رباعي)</label>
+                        <input type="text" id="regName" required placeholder="مثال: محمد عبد الله علي" class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-brand-500 outline-none">
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">الدرجة الأكاديمية</label>
+                            <select id="regDegree" class="w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-brand-500 outline-none">
+                                <option value="معيد">معيد</option>
+                                <option value="مدرس مساعد">مدرس مساعد</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 mb-1">القسم العلمي</label>
+                            <input type="text" id="regDept" required placeholder="مثال: علوم الحاسب" class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-brand-500 outline-none">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1">البريد الإلكتروني</label>
+                        <input type="email" id="regEmail" required placeholder="user@univ.edu.eg" class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-brand-500 outline-none text-left" dir="ltr">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-1">كلمة المرور</label>
+                        <input type="password" id="regPassword" required placeholder="••••••••" class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-brand-500 outline-none text-left" dir="ltr">
+                    </div>
+
+                    <button type="submit" class="w-full py-3 bg-accent-600 hover:bg-accent-700 text-white font-bold rounded-xl shadow-md transition mt-2">
+                        إنشاء الحساب وتفعيل الصفحة فوراً
+                    </button>
+                </form>
+            </div>
+        </section>
+
+
+        <!-- VIEW 2: TEACHING ASSISTANT (USER) EDIT VIEW -->
+        <section id="userSection" class="hidden max-w-4xl mx-auto space-y-6">
+            
+            <!-- Greeting & Quick Stats Banner -->
+            <div class="bg-gradient-to-r from-brand-800 to-brand-900 text-white rounded-2xl p-6 sm:p-8 shadow-lg relative overflow-hidden">
+                <div class="relative z-10 flex flex-wrap items-center justify-between gap-4">
+                    <div>
+                        <span class="inline-block px-3 py-1 bg-brand-700 text-brand-100 rounded-full text-xs font-semibold mb-2" id="userBadgeDegree">معيد</span>
+                        <h2 class="text-2xl sm:text-3xl font-extrabold" id="userWelcomeName">أهلاً بك</h2>
+                        <p class="text-sm text-brand-200 mt-1" id="userDept">قسم علوم الحاسب</p>
+                    </div>
+                    <div class="bg-white/10 backdrop-blur-md rounded-xl p-4 text-center border border-white/20 min-w-[130px]">
+                        <p class="text-xs text-brand-200">إجمالي العبء الأسبوعي</p>
+                        <div class="text-3xl font-black text-amber-300 mt-1"><span id="userTotalHoursDisplay">0</span> <span class="text-sm font-normal text-white">ساعة</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Workload & Quality Form -->
+            <form onsubmit="handleSaveUserProfile(event)" class="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200 space-y-8">
+                
+                <!-- Section 1: Teaching Workload -->
+                <div>
+                    <div class="flex items-center gap-2 border-b border-slate-200 pb-3 mb-5">
+                        <span class="p-2 bg-brand-100 text-brand-700 rounded-lg">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        </span>
+                        <h3 class="text-lg font-bold text-slate-800">1. بيانات العبء التدريسي الأسبوعي</h3>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                            <label class="block text-sm font-bold text-slate-700 mb-1">ساعات التمارين (السكاشن)</label>
+                            <input type="number" id="formTutorialHours" min="0" max="30" value="0" oninput="calculateTotalHours()" class="w-full text-center text-xl font-bold px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-brand-500 outline-none">
+                        </div>
+                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                            <label class="block text-sm font-bold text-slate-700 mb-1">ساعات المعامل العملية</label>
+                            <input type="number" id="formLabHours" min="0" max="30" value="0" oninput="calculateTotalHours()" class="w-full text-center text-xl font-bold px-3 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-brand-500 outline-none">
+                        </div>
+                        <div class="bg-brand-50 p-4 rounded-xl border border-brand-200 flex flex-col justify-center items-center">
+                            <span class="text-xs font-semibold text-brand-800">إجمالي الساعات الأسبوعية</span>
+                            <span id="formTotalHoursCalculated" class="text-2xl font-black text-brand-900 mt-1">0 ساعة</span>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700 mb-1.5">المقررات الدراسية المكلف بها هذا الفصل</label>
+                        <input type="text" id="formCourses" placeholder="مثال: تراكيب بيانات (فرقة 2)، مقدمة برمجة (فرقة 1)" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-brand-500 outline-none">
+                        <p class="text-xs text-slate-500 mt-1">اكتب أسماء المقررات مفصولة بفواصل.</p>
+                    </div>
+                </div>
+
+                <!-- Section 2: Quality Assurance Committees -->
+                <div>
+                    <div class="flex items-center gap-2 border-b border-slate-200 pb-3 mb-5">
+                        <span class="p-2 bg-emerald-100 text-emerald-700 rounded-lg">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                        </span>
+                        <h3 class="text-lg font-bold text-slate-800">2. لجان الجودة والأنشطة الأكاديمية</h3>
+                    </div>
+
+                    <div class="mb-5">
+                        <label class="block text-sm font-bold text-slate-700 mb-2">اختر اللجان ومعايير الجودة المسجل فيها:</label>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5" id="committeesCheckboxContainer">
+                            <!-- Injected dynamically via JS -->
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-1.5">الدور الرئيسي في اللجنة</label>
+                            <select id="formCommitteeRole" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-brand-500 outline-none">
+                                <option value="عضو">عضو في اللجنة</option>
+                                <option value="أمين سر اللجنة">أمين سر اللجنة (توثيق ومحاضر)</option>
+                                <option value="منسق المعيار">منسق المعيار</option>
+                                <option value="رئيس فريق جمع الوثائق">رئيس فريق جمع الوثائق والأدلة</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-1.5">لجان أو مهام إضافية (اختياري)</label>
+                            <input type="text" id="formExtraCommittees" placeholder="مثل: لجنة الجداول، كنترول الفرقة الثالثة" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-brand-500 outline-none">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pt-4 flex justify-end">
+                    <button type="submit" class="w-full sm:w-auto px-8 py-3.5 bg-brand-700 hover:bg-brand-800 text-white font-bold rounded-xl shadow-lg transition flex items-center justify-center gap-2 text-base">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                        حفظ وتحديث بياناتي سحابياً
+                    </button>
+                </div>
+            </form>
+        </section>
+
+
+        <!-- VIEW 3: ADMIN & DEPARTMENT QUALITY DASHBOARD -->
+        <section id="adminSection" class="hidden space-y-6">
+
+            <!-- Controls & Export Toolbar -->
+            <div class="flex flex-wrap items-center justify-between gap-4 bg-white p-5 rounded-2xl shadow-sm border border-slate-200 no-print">
+                <div>
+                    <h2 class="text-2xl font-black text-brand-900">لوحة المتابعة الشاملة للقسم والجودة</h2>
+                    <p class="text-sm text-slate-500">تحديث فوري ومباشر لجميع المعيدين عبر السحابة</p>
+                </div>
+                <div class="flex flex-wrap items-center gap-2.5">
+                    <button onclick="exportToCSV()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-xl shadow flex items-center gap-2 transition">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                        تصدير كملف Excel (CSV)
+                    </button>
+                    <button onclick="window.print()" class="px-4 py-2 bg-slate-700 hover:bg-slate-800 text-white text-sm font-bold rounded-xl shadow flex items-center gap-2 transition">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                        طباعة / تقرير PDF
+                    </button>
+                    <button onclick="openAddMemberModal()" class="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white text-sm font-bold rounded-xl shadow flex items-center gap-2 transition">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                        إضافة عضو يدوياً
+                    </button>
+                </div>
+            </div>
+
+            <!-- Stats KPI Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 no-print">
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-4">
+                    <div class="p-3 bg-brand-50 text-brand-600 rounded-xl">
+                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                    </div>
+                    <div>
+                        <p class="text-xs font-semibold text-slate-500">إجمالي المسجلين</p>
+                        <h4 id="statTotalMembers" class="text-2xl font-black text-slate-800">0</h4>
+                    </div>
+                </div>
+
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-4">
+                    <div class="p-3 bg-blue-50 text-blue-600 rounded-xl">
+                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </div>
+                    <div>
+                        <p class="text-xs font-semibold text-slate-500">متوسط الساعات الأسبوعية</p>
+                        <h4 id="statAvgHours" class="text-2xl font-black text-slate-800">0</h4>
+                    </div>
+                </div>
+
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-4">
+                    <div class="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
+                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path></svg>
+                    </div>
+                    <div>
+                        <p class="text-xs font-semibold text-slate-500">المشاركون في لجان الجودة</p>
+                        <h4 id="statQualityParticipants" class="text-2xl font-black text-slate-800">0</h4>
+                    </div>
+                </div>
+
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-4">
+                    <div class="p-3 bg-amber-50 text-amber-600 rounded-xl">
+                        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                    </div>
+                    <div>
+                        <p class="text-xs font-semibold text-slate-500">أعلى عبء تدريسي مسجل</p>
+                        <h4 id="statMaxHours" class="text-2xl font-black text-slate-800">0 س</h4>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Search & Filters -->
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-wrap gap-3 items-center justify-between no-print">
+                <div class="flex-1 min-w-[240px]">
+                    <div class="relative">
+                        <input type="text" id="adminSearchInput" oninput="renderAdminTable()" placeholder="ابحث باسم المعيد، المقرر، أو البريد..." class="w-full pr-10 pl-4 py-2 rounded-xl border border-slate-300 focus:ring-2 focus:ring-brand-500 outline-none text-sm">
+                        <svg class="w-5 h-5 text-slate-400 absolute right-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap gap-2">
+                    <select id="filterDegree" onchange="renderAdminTable()" class="px-3 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                        <option value="all">جميع الدرجات (معيد / م. مساعد)</option>
+                        <option value="معيد">معيد</option>
+                        <option value="مدرس مساعد">مدرس مساعد</option>
+                    </select>
+
+                    <select id="filterCommittee" onchange="renderAdminTable()" class="px-3 py-2 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-brand-500 outline-none">
+                        <option value="all">جميع لجان الجودة</option>
+                        <!-- Injected via JS -->
+                    </select>
+                </div>
+            </div>
+
+            <!-- Table of Members -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-right text-sm">
+                        <thead class="bg-slate-50 text-slate-600 font-bold border-b border-slate-200 text-xs uppercase">
+                            <tr>
+                                <th class="p-4">الاسم والبيانات</th>
+                                <th class="p-4">الدرجة والقسم</th>
+                                <th class="p-4 text-center">العبء (تمارين / معامل)</th>
+                                <th class="p-4 text-center">الإجمالي</th>
+                                <th class="p-4">المقررات</th>
+                                <th class="p-4">لجان الجودة والمهام</th>
+                                <th class="p-4 text-center no-print">إجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="adminTableBody" class="divide-y divide-slate-100">
+                            <!-- Injected dynamically via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Modal for Admin Editing/Adding a Member -->
+    <div id="memberModal" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-xl w-full p-6 max-h-[90vh] overflow-y-auto space-y-4">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 id="modalTitle" class="text-lg font-bold text-slate-800">تعديل بيانات العضو</h3>
+                <button onclick="closeMemberModal()" class="text-slate-400 hover:text-slate-600 text-2xl font-bold">&times;</button>
+            </div>
+            <form onsubmit="handleModalSave(event)" class="space-y-4">
+                <input type="hidden" id="modalUserId">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">الاسم الكامل</label>
+                    <input type="text" id="modalName" required class="w-full px-3 py-2 border rounded-lg">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">الدرجة</label>
+                        <select id="modalDegree" class="w-full px-3 py-2 border rounded-lg">
+                            <option value="معيد">معيد</option>
+                            <option value="مدرس مساعد">مدرس مساعد</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">القسم</label>
+                        <input type="text" id="modalDept" required class="w-full px-3 py-2 border rounded-lg">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">ساعات التمارين</label>
+                        <input type="number" id="modalTutorial" min="0" class="w-full px-3 py-2 border rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">ساعات المعامل</label>
+                        <input type="number" id="modalLab" min="0" class="w-full px-3 py-2 border rounded-lg">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">المقررات</label>
+                    <input type="text" id="modalCourses" class="w-full px-3 py-2 border rounded-lg">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">لجان الجودة</label>
+                    <input type="text" id="modalCommittees" placeholder="مفصولة بفواصل" class="w-full px-3 py-2 border rounded-lg">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">الدور في اللجنة</label>
+                    <input type="text" id="modalRole" class="w-full px-3 py-2 border rounded-lg">
+                </div>
+                <div class="flex justify-end gap-2 pt-3 border-t">
+                    <button type="button" onclick="closeMemberModal()" class="px-4 py-2 border rounded-lg text-slate-600 text-sm">إلغاء</button>
+                    <button type="submit" class="px-5 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-lg font-bold text-sm">حفظ التغييرات سحابياً</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal for Cloud Database Configuration (Firebase) -->
+    <div id="cloudConfigModal" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 space-y-4">
+            <div class="flex justify-between items-center border-b pb-3">
+                <div class="flex items-center gap-2">
+                    <span class="text-xl">☁️</span>
+                    <h3 class="text-lg font-bold text-slate-800">إعدادات قاعدة البيانات السحابية الموحدة</h3>
+                </div>
+                <button onclick="closeCloudConfigModal()" class="text-slate-400 hover:text-slate-600 text-2xl font-bold">&times;</button>
+            </div>
+            
+            <p class="text-xs text-slate-600 leading-relaxed">
+                لكي يرى جميع المعيدين ومنسق الجودة البيانات في نفس اللحظة من أي جهاز في العالم، يستخدم النظام قاعدة بيانات <b>Firebase Realtime Database</b> المجانية من Google.
+            </p>
+
+            <div class="space-y-3 text-xs bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <div class="font-bold text-slate-800 mb-1">كيف تحصل على رابط مجاني في دقيقة واحدة؟</div>
+                <ol class="list-decimal list-inside space-y-1 text-slate-600">
+                    <li>ادخل إلى <a href="https://console.firebase.google.com" target="_blank" class="text-brand-600 underline font-bold">console.firebase.google.com</a> وسجل بحساب Google.</li>
+                    <li>اضغط <b>Add project</b> ثم اختر <b>Realtime Database</b> واضغط <b>Create Database</b> في وضع الاختبار (Test Mode).</li>
+                    <li>انسخ رابط قاعدة البيانات (ينتهي بـ <code class="bg-slate-200 px-1 rounded">.firebasedatabase.app</code>) وألصقه بالأسفل.</li>
+                </ol>
+            </div>
+
+            <form onsubmit="handleSaveCloudConfig(event)" class="space-y-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">رابط قاعدة البيانات السحابية (Database URL):</label>
+                    <input type="url" id="cfgDbUrl" required placeholder="https://your-dept-default-rtdb.firebaseio.com" class="w-full px-3 py-2 border rounded-lg text-left text-xs outline-none focus:ring-2 focus:ring-brand-500" dir="ltr">
+                </div>
+                <div class="flex justify-between items-center pt-2">
+                    <button type="button" onclick="useDemoCloudDB()" class="text-xs text-brand-600 hover:underline font-semibold">
+                        ⚡ تجربة رابط سحابي تجريبي جاهز
+                    </button>
+                    <div class="flex gap-2">
+                        <button type="button" onclick="closeCloudConfigModal()" class="px-3 py-1.5 border rounded-lg text-slate-600 text-xs">إلغاء</button>
+                        <button type="submit" class="px-4 py-1.5 bg-brand-600 hover:bg-brand-700 text-white rounded-lg font-bold text-xs">اتصال وحفظ</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-500 no-print">
+        نظام سحابي موحد للهيئة المعاونة والجودة © 2026 — مصمم للعمل المباشر عبر الإنترنت وتحديث البيانات المشتركة لحظياً
+    </footer>
+
+    <!-- Application Logic (Firebase Cloud Sync + Local Storage Fallback) -->
+    <script>
+        const QUALITY_COMMITTEES = [
+            "معيار التدريس والتعلم",
+            "معيار القياس والتقويم والامتحانات",
+            "معيار الطلاب والخريجون",
+            "معيار أعضاء هيئة التدريس والهيئة المعاونة",
+            "معيار التخطيط الاستراتيجي والمؤسسي",
+            "معيار القيادة والحوكمة",
+            "معيار البحث العلمي والأنشطة العلمية",
+            "معيار خدمة المجتمع وتنمية البيئة",
+            "لجنة إعداد الجداول والعبء التدريسي",
+            "لجنة المراجعة الداخلية والوثائق"
+        ];
+
+        // Default Seed Data
+        const DEFAULT_USERS = [
+            {
+                id: "admin-1",
+                name: "د. خالد مصطفى (منسق الجودة)",
+                email: "admin@dept.edu.eg",
+                password: "123456",
+                role: "Admin",
+                degree: "أستاذ مساعد",
+                department: "إدارة الجودة والقسم",
+                tutorialHours: 0,
+                labHours: 0,
+                totalHours: 0,
+                courses: "إشراف ومتابعة أكاديمية",
+                committees: ["معيار التخطيط الاستراتيجي والمؤسسي", "لجنة المراجعة الداخلية والوثائق"],
+                committeeRole: "رئيس اللجنة",
+                extraCommittees: "إشراف عام"
+            },
+            {
+                id: "user-1",
+                name: "أحمد محمد إبراهيم",
+                email: "ahmed.ibrahim@univ.edu.eg",
+                password: "123456",
+                role: "User",
+                degree: "معيد",
+                department: "علوم الحاسب",
+                tutorialHours: 6,
+                labHours: 4,
+                totalHours: 10,
+                courses: "تراكيب بيانات، مقدمة برمجة C++",
+                committees: ["معيار التدريس والتعلم", "لجنة إعداد الجداول والعبء التدريسي"],
+                committeeRole: "عضو ومقرر",
+                extraCommittees: "كنترول الفرقة الثانية"
+            },
+            {
+                id: "user-2",
+                name: "سارة علي محمود",
+                email: "sara.ali@univ.edu.eg",
+                password: "123456",
+                role: "User",
+                degree: "مدرس مساعد",
+                department: "نظم المعلومات",
+                tutorialHours: 4,
+                labHours: 6,
+                totalHours: 10,
+                courses: "قواعد بيانات متقدمة، تحليل نظم",
+                committees: ["معيار الطلاب والخريجون"],
+                committeeRole: "أمين سر اللجنة",
+                extraCommittees: "رعاية الشباب"
+            },
+            {
+                id: "user-3",
+                name: "محمود حسن كمال",
+                email: "mahmoud.hassan@univ.edu.eg",
+                password: "123456",
+                role: "User",
+                degree: "معيد",
+                department: "علوم الحاسب",
+                tutorialHours: 8,
+                labHours: 6,
+                totalHours: 14,
+                courses: "ذكاء اصطناعي، خوارزميات، نظم تشغيل",
+                committees: ["معيار القياس والتقويم والامتحانات"],
+                committeeRole: "عضو",
+                extraCommittees: ""
+            },
+            {
+                id: "user-4",
+                name: "نوران طارق عبد الرحمن",
+                email: "nouran.tareq@univ.edu.eg",
+                password: "123456",
+                role: "User",
+                degree: "مدرس مساعد",
+                department: "تكنولوجيا المعلومات",
+                tutorialHours: 4,
+                labHours: 8,
+                totalHours: 12,
+                courses: "شبكات الحاسب، أمن المعلومات",
+                committees: ["معيار التدريس والتعلم", "معيار القياس والتقويم والامتحانات"],
+                committeeRole: "منسق المعيار",
+                extraCommittees: "منسق المعامل"
+            }
+        ];
+
+        let users = [];
+        let currentUser = null;
+        let isCloudConnected = false;
+        let firebaseDbRef = null;
+
+        // Initialize App
+        function initApp() {
+            // Setup committees checkboxes
+            const checkboxContainer = document.getElementById("committeesCheckboxContainer");
+            checkboxContainer.innerHTML = QUALITY_COMMITTEES.map(comm => `
+                <label class="flex items-center gap-2.5 p-2.5 bg-slate-50 hover:bg-slate-100 rounded-lg cursor-pointer border border-slate-200 transition">
+                    <input type="checkbox" name="qualityCommittees" value="${comm}" class="w-4 h-4 text-brand-600 rounded border-slate-300 focus:ring-brand-500">
+                    <span class="text-xs font-semibold text-slate-700">${comm}</span>
+                </label>
+            `).join('');
+
+            // Setup admin filter
+            const filterCommSelect = document.getElementById("filterCommittee");
+            filterCommSelect.innerHTML = `<option value="all">جميع لجان الجودة</option>` + 
+                QUALITY_COMMITTEES.map(c => `<option value="${c}">${c}</option>`).join('');
+
+            // Load local cache first
+            loadLocalUsers();
+
+            // Check active session
+            const sessionUserId = localStorage.getItem("ta_current_user_id");
+            if (sessionUserId) {
+                const found = users.find(u => u.id === sessionUserId);
+                if (found) currentUser = found;
+            }
+
+            // Attempt Cloud Connection
+            setupFirebaseCloud();
+
+            renderNavbar();
+            renderCurrentView();
+        }
+
+        // Cloud Setup
+        function setupFirebaseCloud() {
+            const savedDbUrl = localStorage.getItem("ta_firebase_db_url") || "https://quality-ta-system-default-rtdb.firebaseio.com";
+            
+            try {
+                if (!firebase.apps.length) {
+                    firebase.initializeApp({
+                        databaseURL: savedDbUrl
+                    });
+                }
+                
+                firebaseDbRef = firebase.database().ref('ta_users');
+
+                // Test connection
+                firebaseDbRef.on('value', (snapshot) => {
+                    isCloudConnected = true;
+                    updateCloudBadge(true);
+                    
+                    const cloudData = snapshot.val();
+                    if (cloudData) {
+                        // Firebase stores objects by id
+                        users = Object.values(cloudData);
+                        saveUsersLocally();
+                    } else {
+                        // Seed cloud if empty
+                        seedCloudDatabase();
+                    }
+
+                    // Update current user reference if logged in
+                    if (currentUser) {
+                        const refreshed = users.find(u => u.id === currentUser.id);
+                        if (refreshed) currentUser = refreshed;
+                    }
+
+                    renderCurrentView();
+                }, (error) => {
+                    console.warn("Cloud connection error, falling back to local mode:", error);
+                    isCloudConnected = false;
+                    updateCloudBadge(false);
+                });
+
+            } catch(e) {
+                console.warn("Firebase init failed:", e);
+                isCloudConnected = false;
+                updateCloudBadge(false);
+            }
+        }
+
+        function updateCloudBadge(connected) {
+            const badge = document.getElementById("cloudStatusBadge");
+            const text = document.getElementById("cloudStatusText");
+            const noticeBanner = document.getElementById("cloudNoticeBanner");
+
+            if (connected) {
+                badge.className = "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 hover:bg-emerald-500/30 transition cursor-pointer";
+                text.innerHTML = "🟢 متصل سحابياً (تحديث فوري)";
+                noticeBanner.classList.add("hidden");
+            } else {
+                badge.className = "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/20 text-amber-300 border border-amber-400/30 hover:bg-amber-500/30 transition cursor-pointer";
+                text.innerHTML = "🟡 الوضع المحلي (اضغط للربط)";
+                noticeBanner.classList.remove("hidden");
+            }
+        }
+
+        function seedCloudDatabase() {
+            if (!firebaseDbRef) return;
+            const seedObj = {};
+            DEFAULT_USERS.forEach(u => {
+                seedObj[u.id] = u;
+            });
+            firebaseDbRef.set(seedObj);
+        }
+
+        function loadLocalUsers() {
+            const stored = localStorage.getItem("ta_management_users");
+            if (stored) {
+                try {
+                    users = JSON.parse(stored);
+                } catch(e) {
+                    users = DEFAULT_USERS;
+                }
+            } else {
+                users = DEFAULT_USERS;
+            }
+        }
+
+        function saveUsersLocally() {
+            localStorage.setItem("ta_management_users", JSON.stringify(users));
+        }
+
+        // Sync a user to cloud & local
+        function syncUser(userObj) {
+            // Local update
+            const idx = users.findIndex(u => u.id === userObj.id);
+            if (idx !== -1) {
+                users[idx] = userObj;
+            } else {
+                users.push(userObj);
+            }
+            saveUsersLocally();
+
+            // Cloud sync
+            if (isCloudConnected && firebaseDbRef) {
+                firebaseDbRef.child(userObj.id).set(userObj);
+            }
+        }
+
+        function syncDeleteUser(userId) {
+            users = users.filter(u => u.id !== userId);
+            saveUsersLocally();
+
+            if (isCloudConnected && firebaseDbRef) {
+                firebaseDbRef.child(userId).remove();
+            }
+        }
+
+        // Cloud Modal Controls
+        function openCloudConfigModal() {
+            document.getElementById("cfgDbUrl").value = localStorage.getItem("ta_firebase_db_url") || "";
+            document.getElementById("cloudConfigModal").classList.remove("hidden");
+        }
+        function closeCloudConfigModal() {
+            document.getElementById("cloudConfigModal").classList.add("hidden");
+        }
+        function handleSaveCloudConfig(e) {
+            e.preventDefault();
+            const url = document.getElementById("cfgDbUrl").value.trim();
+            if (url) {
+                localStorage.setItem("ta_firebase_db_url", url);
+                location.reload();
+            }
+        }
+        function useDemoCloudDB() {
+            const demoUrl = "https://quality-ta-system-default-rtdb.firebaseio.com";
+            document.getElementById("cfgDbUrl").value = demoUrl;
+            localStorage.setItem("ta_firebase_db_url", demoUrl);
+            location.reload();
+        }
+
+        function showToast(text) {
+            const toast = document.getElementById("toastMessage");
+            document.getElementById("toastText").innerText = text;
+            toast.classList.remove("hidden");
+            setTimeout(() => {
+                toast.classList.add("hidden");
+            }, 3000);
+        }
+
+        // Auth Tabs
+        function switchAuthTab(tab) {
+            const loginBtn = document.getElementById("tabLoginBtn");
+            const regBtn = document.getElementById("tabRegisterBtn");
+            const loginForm = document.getElementById("loginForm");
+            const regForm = document.getElementById("registerForm");
+
+            if (tab === 'login') {
+                loginBtn.className = "flex-1 py-3.5 text-center font-bold text-brand-700 border-b-2 border-brand-600 transition";
+                regBtn.className = "flex-1 py-3.5 text-center font-bold text-slate-500 hover:text-brand-600 border-b-2 border-transparent transition";
+                loginForm.classList.remove("hidden");
+                regForm.classList.add("hidden");
+            } else {
+                regBtn.className = "flex-1 py-3.5 text-center font-bold text-brand-700 border-b-2 border-brand-600 transition";
+                loginBtn.className = "flex-1 py-3.5 text-center font-bold text-slate-500 hover:text-brand-600 border-b-2 border-transparent transition";
+                regForm.classList.remove("hidden");
+                loginForm.classList.add("hidden");
+            }
+        }
+
+        function quickFillLogin(email, pass) {
+            document.getElementById("loginEmail").value = email;
+            document.getElementById("loginPassword").value = pass;
+            handleLogin(new Event('submit'));
+        }
+
+        function handleLogin(e) {
+            if (e) e.preventDefault();
+            const email = document.getElementById("loginEmail").value.trim().toLowerCase();
+            const pass = document.getElementById("loginPassword").value;
+
+            const user = users.find(u => u.email.toLowerCase() === email && u.password === pass);
+            if (!user) {
+                alert("البريد الإلكتروني أو كلمة المرور غير صحيحة");
+                return;
+            }
+
+            currentUser = user;
+            localStorage.setItem("ta_current_user_id", user.id);
+            renderNavbar();
+            renderCurrentView();
+            showToast("مرحباً بك: " + user.name);
+        }
+
+        function handleRegister(e) {
+            e.preventDefault();
+            const name = document.getElementById("regName").value.trim();
+            const email = document.getElementById("regEmail").value.trim().toLowerCase();
+            const pass = document.getElementById("regPassword").value;
+            const degree = document.getElementById("regDegree").value;
+            const dept = document.getElementById("regDept").value.trim();
+
+            if (users.some(u => u.email.toLowerCase() === email)) {
+                alert("هذا البريد مسجل بالفعل، يرجى تسجيل الدخول");
+                return;
+            }
+
+            const newUser = {
+                id: "user-" + Date.now(),
+                name: name,
+                email: email,
+                password: pass,
+                role: "User",
+                degree: degree,
+                department: dept,
+                tutorialHours: 0,
+                labHours: 0,
+                totalHours: 0,
+                courses: "",
+                committees: [],
+                committeeRole: "عضو",
+                extraCommittees: ""
+            };
+
+            syncUser(newUser);
+            currentUser = newUser;
+            localStorage.setItem("ta_current_user_id", newUser.id);
+
+            renderNavbar();
+            renderCurrentView();
+            showToast("تم إنشاء الحساب بنجاح سحابياً!");
+        }
+
+        function handleLogout() {
+            currentUser = null;
+            localStorage.removeItem("ta_current_user_id");
+            renderNavbar();
+            renderCurrentView();
+            showToast("تم تسجيل الخروج");
+        }
+
+        function renderNavbar() {
+            const container = document.getElementById("navUserSection");
+            if (!currentUser) {
+                container.innerHTML = `
+                    <button onclick="showAuthView()" class="px-4 py-2 bg-brand-700 hover:bg-brand-600 text-white rounded-xl text-sm font-bold transition shadow-sm">
+                        تسجيل الدخول / حساب جديد
+                    </button>
+                `;
+            } else {
+                container.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <div class="text-left hidden sm:block">
+                            <div class="text-sm font-bold text-white">${currentUser.name}</div>
+                            <div class="text-xs text-brand-200">${currentUser.role === 'Admin' ? '👑 مسؤول الجودة والقسم' : currentUser.degree + ' - ' + currentUser.department}</div>
+                        </div>
+                        ${currentUser.role === 'Admin' ? `
+                            <button onclick="toggleAdminUserView()" id="viewSwitchBtn" class="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-900 rounded-lg text-xs font-bold transition shadow">
+                                ${currentActiveView === 'admin' ? '👤 صفحتي كمعيد' : '📊 لوحة القسم العامة'}
+                            </button>
+                        ` : ''}
+                        <button onclick="handleLogout()" title="تسجيل الخروج" class="p-2 bg-brand-800 hover:bg-red-700 text-white rounded-lg text-xs transition">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        let currentActiveView = 'user';
+
+        function showAuthView() {
+            currentActiveView = 'auth';
+            renderCurrentView();
+        }
+
+        function toggleAdminUserView() {
+            currentActiveView = (currentActiveView === 'admin') ? 'user' : 'admin';
+            renderNavbar();
+            renderCurrentView();
+        }
+
+        function renderCurrentView() {
+            const authSec = document.getElementById("authSection");
+            const userSec = document.getElementById("userSection");
+            const adminSec = document.getElementById("adminSection");
+
+            authSec.classList.add("hidden");
+            userSec.classList.add("hidden");
+            adminSec.classList.add("hidden");
+
+            if (!currentUser) {
+                authSec.classList.remove("hidden");
+                return;
+            }
+
+            if (currentUser.role === 'Admin' && currentActiveView === 'admin') {
+                adminSec.classList.remove("hidden");
+                renderAdminDashboard();
+            } else {
+                userSec.classList.remove("hidden");
+                populateUserForm();
+            }
+        }
+
+        // USER VIEW LOGIC
+        function populateUserForm() {
+            document.getElementById("userWelcomeName").innerText = "أهلاً بك، " + currentUser.name;
+            document.getElementById("userBadgeDegree").innerText = currentUser.degree;
+            document.getElementById("userDept").innerText = "قسم: " + currentUser.department;
+            document.getElementById("userTotalHoursDisplay").innerText = currentUser.totalHours || 0;
+
+            document.getElementById("formTutorialHours").value = currentUser.tutorialHours || 0;
+            document.getElementById("formLabHours").value = currentUser.labHours || 0;
+            document.getElementById("formCourses").value = currentUser.courses || '';
+            document.getElementById("formCommitteeRole").value = currentUser.committeeRole || 'عضو';
+            document.getElementById("formExtraCommittees").value = currentUser.extraCommittees || '';
+
+            calculateTotalHours();
+
+            const selected = currentUser.committees || [];
+            const checkboxes = document.querySelectorAll("input[name='qualityCommittees']");
+            checkboxes.forEach(cb => {
+                cb.checked = selected.includes(cb.value);
+            });
+        }
+
+        function calculateTotalHours() {
+            const tut = parseInt(document.getElementById("formTutorialHours").value) || 0;
+            const lab = parseInt(document.getElementById("formLabHours").value) || 0;
+            const total = tut + lab;
+            document.getElementById("formTotalHoursCalculated").innerText = total + " ساعة";
+            return total;
+        }
+
+        function handleSaveUserProfile(e) {
+            e.preventDefault();
+            const tut = parseInt(document.getElementById("formTutorialHours").value) || 0;
+            const lab = parseInt(document.getElementById("formLabHours").value) || 0;
+            const courses = document.getElementById("formCourses").value.trim();
+            const roleInComm = document.getElementById("formCommitteeRole").value;
+            const extraComm = document.getElementById("formExtraCommittees").value.trim();
+
+            const checkedBoxes = document.querySelectorAll("input[name='qualityCommittees']:checked");
+            const selectedCommittees = Array.from(checkedBoxes).map(cb => cb.value);
+
+            currentUser.tutorialHours = tut;
+            currentUser.labHours = lab;
+            currentUser.totalHours = tut + lab;
+            currentUser.courses = courses;
+            currentUser.committees = selectedCommittees;
+            currentUser.committeeRole = roleInComm;
+            currentUser.extraCommittees = extraComm;
+
+            syncUser(currentUser);
+
+            document.getElementById("userTotalHoursDisplay").innerText = currentUser.totalHours;
+            showToast("تم الحفظ ونشر التحديث سحابياً للقسم!");
+        }
+
+        // ADMIN VIEW LOGIC
+        function renderAdminDashboard() {
+            const activeUsers = users.filter(u => u.role !== 'Admin');
+            const totalCount = activeUsers.length;
+            const sumHours = activeUsers.reduce((sum, u) => sum + (u.totalHours || 0), 0);
+            const avgHours = totalCount > 0 ? (sumHours / totalCount).toFixed(1) : 0;
+            const participantsInQuality = activeUsers.filter(u => u.committees && u.committees.length > 0).length;
+            const maxHours = activeUsers.reduce((max, u) => Math.max(max, u.totalHours || 0), 0);
+
+            document.getElementById("statTotalMembers").innerText = totalCount;
+            document.getElementById("statAvgHours").innerText = avgHours + " س";
+            document.getElementById("statQualityParticipants").innerText = participantsInQuality + " من " + totalCount;
+            document.getElementById("statMaxHours").innerText = maxHours + " س";
+
+            renderAdminTable();
+        }
+
+        function renderAdminTable() {
+            const tbody = document.getElementById("adminTableBody");
+            const search = document.getElementById("adminSearchInput").value.trim().toLowerCase();
+            const filterDegree = document.getElementById("filterDegree").value;
+            const filterComm = document.getElementById("filterCommittee").value;
+
+            const filtered = users.filter(u => {
+                if (u.role === 'Admin') return false;
+
+                const matchSearch = !search || 
+                    u.name.toLowerCase().includes(search) || 
+                    (u.courses && u.courses.toLowerCase().includes(search)) ||
+                    u.email.toLowerCase().includes(search);
+
+                const matchDegree = filterDegree === 'all' || u.degree === filterDegree;
+
+                const matchComm = filterComm === 'all' || 
+                    (u.committees && u.committees.includes(filterComm));
+
+                return matchSearch && matchDegree && matchComm;
+            });
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-slate-400">لا توجد بيانات مطابقة لخيارات البحث</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = filtered.map(u => {
+                const total = u.totalHours || 0;
+                let hoursBadgeColor = "bg-slate-100 text-slate-700";
+                if (total >= 14) hoursBadgeColor = "bg-rose-100 text-rose-800 font-bold";
+                else if (total >= 10) hoursBadgeColor = "bg-emerald-100 text-emerald-800 font-bold";
+                else if (total < 6) hoursBadgeColor = "bg-amber-100 text-amber-800";
+
+                const commsBadge = (u.committees && u.committees.length > 0)
+                    ? u.committees.map(c => `<span class="inline-block bg-brand-50 text-brand-700 px-2 py-0.5 rounded text-xs ml-1 mb-1 border border-brand-200">${c}</span>`).join('')
+                    : `<span class="text-xs text-rose-500 font-semibold">غير مسجل بلجان</span>`;
+
+                return `
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="p-4">
+                            <div class="font-bold text-slate-800">${u.name}</div>
+                            <div class="text-xs text-slate-400">${u.email}</div>
+                        </td>
+                        <td class="p-4">
+                            <span class="inline-block px-2.5 py-1 rounded-full text-xs font-semibold ${u.degree === 'مدرس مساعد' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}">
+                                ${u.degree}
+                            </span>
+                            <div class="text-xs text-slate-500 mt-1">${u.department}</div>
+                        </td>
+                        <td class="p-4 text-center font-medium">
+                            <span class="text-slate-600">${u.tutorialHours || 0} تمارين</span> / 
+                            <span class="text-slate-600">${u.labHours || 0} معامل</span>
+                        </td>
+                        <td class="p-4 text-center">
+                            <span class="inline-block px-3 py-1 rounded-xl text-xs ${hoursBadgeColor}">
+                                ${total} ساعة
+                            </span>
+                        </td>
+                        <td class="p-4 text-xs text-slate-600 max-w-xs">
+                            ${u.courses || '<span class="text-slate-400">لم تحدد بعد</span>'}
+                        </td>
+                        <td class="p-4 max-w-sm">
+                            <div class="flex flex-wrap">${commsBadge}</div>
+                            ${u.committeeRole ? `<div class="text-[11px] text-slate-500 mt-1">الدور: <b class="text-slate-700">${u.committeeRole}</b></div>` : ''}
+                        </td>
+                        <td class="p-4 text-center no-print">
+                            <div class="flex justify-center gap-1.5">
+                                <button onclick="openEditModal('${u.id}')" class="p-1.5 text-brand-600 hover:bg-brand-50 rounded-lg transition" title="تعديل">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                                </button>
+                                <button onclick="deleteMember('${u.id}')" class="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg transition" title="حذف">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Admin Modal
+        function openEditModal(userId) {
+            const u = users.find(x => x.id === userId);
+            if (!u) return;
+
+            document.getElementById("modalTitle").innerText = "تعديل بيانات: " + u.name;
+            document.getElementById("modalUserId").value = u.id;
+            document.getElementById("modalName").value = u.name;
+            document.getElementById("modalDegree").value = u.degree;
+            document.getElementById("modalDept").value = u.department;
+            document.getElementById("modalTutorial").value = u.tutorialHours || 0;
+            document.getElementById("modalLab").value = u.labHours || 0;
+            document.getElementById("modalCourses").value = u.courses || '';
+            document.getElementById("modalCommittees").value = (u.committees || []).join('، ');
+            document.getElementById("modalRole").value = u.committeeRole || 'عضو';
+
+            document.getElementById("memberModal").classList.remove("hidden");
+        }
+
+        function openAddMemberModal() {
+            document.getElementById("modalTitle").innerText = "إضافة عضو هيئة معاونة جديد";
+            document.getElementById("modalUserId").value = "NEW";
+            document.getElementById("modalName").value = "";
+            document.getElementById("modalDegree").value = "معيد";
+            document.getElementById("modalDept").value = "علوم الحاسب";
+            document.getElementById("modalTutorial").value = 0;
+            document.getElementById("modalLab").value = 0;
+            document.getElementById("modalCourses").value = "";
+            document.getElementById("modalCommittees").value = "";
+            document.getElementById("modalRole").value = "عضو";
+
+            document.getElementById("memberModal").classList.remove("hidden");
+        }
+
+        function closeMemberModal() {
+            document.getElementById("memberModal").classList.add("hidden");
+        }
+
+        function handleModalSave(e) {
+            e.preventDefault();
+            const id = document.getElementById("modalUserId").value;
+            const name = document.getElementById("modalName").value.trim();
+            const degree = document.getElementById("modalDegree").value;
+            const dept = document.getElementById("modalDept").value.trim();
+            const tut = parseInt(document.getElementById("modalTutorial").value) || 0;
+            const lab = parseInt(document.getElementById("modalLab").value) || 0;
+            const courses = document.getElementById("modalCourses").value.trim();
+            const commRaw = document.getElementById("modalCommittees").value.trim();
+            const role = document.getElementById("modalRole").value.trim();
+
+            const commList = commRaw ? commRaw.split(/[,،]/).map(s => s.trim()).filter(Boolean) : [];
+
+            let targetUser;
+            if (id === 'NEW') {
+                targetUser = {
+                    id: "user-" + Date.now(),
+                    name: name,
+                    email: name.replace(/\s+/g, '.').toLowerCase() + "@univ.edu.eg",
+                    password: "123456",
+                    role: "User",
+                    degree: degree,
+                    department: dept,
+                    tutorialHours: tut,
+                    labHours: lab,
+                    totalHours: tut + lab,
+                    courses: courses,
+                    committees: commList,
+                    committeeRole: role,
+                    extraCommittees: ""
+                };
+            } else {
+                targetUser = users.find(u => u.id === id);
+                if (targetUser) {
+                    targetUser.name = name;
+                    targetUser.degree = degree;
+                    targetUser.department = dept;
+                    targetUser.tutorialHours = tut;
+                    targetUser.labHours = lab;
+                    targetUser.totalHours = tut + lab;
+                    targetUser.courses = courses;
+                    targetUser.committees = commList;
+                    targetUser.committeeRole = role;
+                }
+            }
+
+            if (targetUser) {
+                syncUser(targetUser);
+            }
+
+            closeMemberModal();
+            renderAdminDashboard();
+            showToast("تم حفظ التعديلات سحابياً بنجاح");
+        }
+
+        function deleteMember(id) {
+            if (confirm("هل أنت متأكد من رغبتك في حذف هذا العضو؟")) {
+                syncDeleteUser(id);
+                renderAdminDashboard();
+                showToast("تم الحذف بنجاح");
+            }
+        }
+
+        // CSV EXPORT LOGIC
+        function exportToCSV() {
+            const headers = ["الاسم", "البريد الإلكتروني", "الدرجة العلمية", "القسم", "ساعات التمارين", "ساعات المعامل", "إجمالي الساعات الأسبوعية", "المقررات المكلف بها", "لجان الجودة", "الدور في اللجنة"];
+            
+            const rows = users.filter(u => u.role !== 'Admin').map(u => [
+                `"${u.name}"`,
+                `"${u.email}"`,
+                `"${u.degree}"`,
+                `"${u.department}"`,
+                u.tutorialHours || 0,
+                u.labHours || 0,
+                u.totalHours || 0,
+                `"${(u.courses || '').replace(/"/g, '""')}"`,
+                `"${(u.committees || []).join('، ').replace(/"/g, '""')}"`,
+                `"${(u.committeeRole || '').replace(/"/g, '""')}"`
+            ]);
+
+            const csvContent = "\uFEFF" + [headers.join(","), ...rows.map(r => r.join(","))].join("\r\n");
+            const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.setAttribute("href", url);
+            link.setAttribute("download", `تقرير_الهيئة_المعاونة_والجودة_${new Date().toISOString().slice(0, 10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Start App
+        window.addEventListener("DOMContentLoaded", initApp);
+    </script>
+</body>
+</html>
